@@ -1,235 +1,98 @@
 "use client";
 
-import { LoaderIcon } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
-// TODO: 古い文章の確定
-// TODO: 一定時間経つとresultsが空配列になる・・・？とにかく結果がまっさらになってしまうのをなんとか状態管理する
-
-function useSpeechRecognition({ lang }: { lang: string }) {
-  const [isListening, setIsListening] = useState(false);
-  const [isRewriting, setIsRewriting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [finalTranscript, setFinalTranscript] = useState<string>("");
-  const [finalSentences, setFinalSentences] = useState<string[]>([]);
-  const [interimTranscript, setInterimTranscript] = useState<string>("");
-
-  const SpeechRecognition =
-    typeof window !== "undefined"
-      ? window.SpeechRecognition || window.webkitSpeechRecognition
-      : null;
-  // @ts-expect-error server componentでのみ起こるエラーでそのためにロジックを汚したくないので無視
-  const recognition: SpeechRecognition = SpeechRecognition
-    ? new SpeechRecognition()
-    : null;
-
-  function onStart() {
-    setError(null);
-    setIsListening(true);
-  }
-  function onError(event: SpeechRecognitionErrorEvent) {
-    setError(new Error(event.message));
-  }
-  function onEnd() {
-    console.log("onEnd");
-    setIsListening(false);
-    recognition.start();
-  }
-  function onResult(event: SpeechRecognitionEvent) {
-    const results = Array.from(event.results);
-    const stringify = (results: SpeechRecognitionResult[]) =>
-      results
-        .flatMap((result) =>
-          Array.from(result).map((alternative) => alternative.transcript)
-        )
-        .join(" ");
-    setInterimTranscript(
-      stringify(results.filter((result) => !result.isFinal))
-    );
-    setFinalTranscript(stringify(results.filter((result) => result.isFinal)));
-  }
-
-  function start(audioTrack: MediaStreamTrack) {
-    recognition.lang = lang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognition.addEventListener("start", onStart);
-    recognition.addEventListener("result", onResult);
-    recognition.addEventListener("error", onError);
-    recognition.addEventListener("end", onEnd);
-    recognition.start(audioTrack);
-  }
-  function stop() {
-    recognition.removeEventListener("start", onStart);
-    recognition.removeEventListener("result", onResult);
-    recognition.removeEventListener("error", onError);
-    recognition.removeEventListener("end", onEnd);
-    recognition.stop();
-  }
-
-  useEffect(() => {
-    let rewriter;
-    console.log("changed:", finalTranscript);
-    setIsRewriting(true);
-    Rewriter.create({
-      outputLanguage: lang.split("-")[0],
-      expectedInputLanguages: [lang],
-      expectedOutputLanguages: ["en"],
-    }).then(
-      (r) => {
-        rewriter = r;
-        rewriter
-          .rewrite(finalTranscript, {
-            context: [
-              `This is a part of a low-accuracy auto-generated translation of a Tech Conference.`,
-              `Correct contextually inappropriate words to the correct technical terms or jargon.`,
-              `Keep the original words and phrases as much as possible.`,
-            ],
-          })
-          .then((r) => {
-            const segmentor = new Intl.Segmenter(lang, {
-              granularity: "sentence",
-            });
-            const sentences = Array.from(segmentor.segment(r))
-              .map((s) => s.segment.trim())
-              .filter((s) => s.trim() !== "");
-            setFinalSentences(sentences);
-            console.log("rewritten:", sentences);
-          })
-          .finally(() => {
-            setIsRewriting(false);
-          });
-      },
-      [setIsRewriting, finalTranscript]
-    );
-
-    return () => {
-      rewriter?.destroy();
-    };
-  }, [lang, finalTranscript]);
-
-  return {
-    isListening,
-    isRewriting,
-    error,
-    interimTranscript,
-    finalSentences,
-    start,
-    stop,
-  };
-}
-
-function Translation({
-  text,
-  sourceLanguage,
-  targetLanguage,
-}: {
-  text: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-}) {
-  const Translator = typeof window !== "undefined" ? window.Translator : null;
-  const [translation, setTranslation] = useState<string>("");
-  const [progress, setProgress] = useState<number>(0);
-
-  useEffect(() => {
-    Translator.create({
-      sourceLanguage: sourceLanguage.split("-")[0],
-      targetLanguage: targetLanguage.split("-")[0],
-      monitor(m) {
-        m.addEventListener("downloadprogress", (e: ProgressEvent) => {
-          setProgress(e.loaded);
-        });
-      },
-    })
-      .then((t) => t.translate(text))
-      .then(setTranslation);
-  }, [Translator, text, sourceLanguage, targetLanguage]);
-
-  return <span>{translation}</span>;
-}
+import { useLayoutEffect, useRef, useState } from "react";
+import Configuration, { ConfigurationValue } from "./Configuration";
+import WebAPIAvailability from "./WebAPIAvailability";
+import Duration from "./Duration";
+import Translation from "./Translation";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 export default function Sandbox() {
-  const sourceLanguage = "en-US";
-  const distLanguage = "ja-JP";
-
   const endMarkerRef = useRef<HTMLDivElement>(null);
-  const {
-    interimTranscript,
-    finalSentences,
-    isListening,
-    isRewriting,
-    error,
-    start,
-    stop,
-  } = useSpeechRecognition({
-    lang: sourceLanguage,
+  const [config, setConfig] = useState<ConfigurationValue>({
+    sourceLanguage: "en-US",
+    targetLanguage: "ja-JP",
   });
+  const { state, interimResults, finalResults, start, stop } =
+    useSpeechRecognition({
+      lang: config.sourceLanguage,
+    });
 
-  const handleClickStart = () => {
-    navigator.mediaDevices
-      .getDisplayMedia({ video: true, audio: true })
-      .then((stream) => {
-        const [audioTrack] = stream.getAudioTracks();
-        start(audioTrack);
-      });
+  const handleChange = (newConfig: ConfigurationValue) => {
+    setConfig(newConfig);
   };
-  const handleClickStop = () => {
+
+  const handleStart = (audioTrack: MediaStreamTrack) => {
+    start(audioTrack);
+  };
+
+  const handleStop = () => {
     stop();
   };
-
   useLayoutEffect(() => {
     if (endMarkerRef.current) {
-      endMarkerRef.current.scrollIntoView({ behavior: "smooth" });
+      endMarkerRef.current.scrollIntoView({ block: "nearest" });
     }
-  }, [interimTranscript, finalSentences]);
+  }, [interimResults, finalResults]);
 
   return (
-    <div>
-      {isListening ? (
-        <button onClick={handleClickStop}>Stop</button>
-      ) : (
-        <button onClick={handleClickStart}>Start</button>
-      )}
-      <ol className="flex flex-col gap-2">
-        {finalSentences.length > 0 &&
-          finalSentences.map((sentence) => (
-            <li key={sentence}>
-              <p className="text-gray-400">{sentence}</p>
+    <div className="h-full min-h-0 flex items-stretch justify-between gap-8 px-8">
+      <div className="w-1/4 flex flex-col min-h-0">
+        <h2 className="text-lg font-bold mb-2">Configuration</h2>
+        <Configuration
+          value={config}
+          isListening={state.isListening}
+          onChange={handleChange}
+          onStart={handleStart}
+          onStop={handleStop}
+        />
+
+        <h2 className="text-lg font-bold mt-4 mb-2">Web APIs Availability</h2>
+        <WebAPIAvailability config={config} />
+      </div>
+      <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
+        <ol className="flex flex-col gap-2">
+          {finalResults.map((result) => (
+            <li key={result.result.transcript}>
+              <p className="text-gray-400 flex flex-col">
+                <time
+                  dateTime={result.fianalizedAt.toISOString()}
+                  className="text-gray-500 flex items-center gap-1"
+                >
+                  <span className="text-sm">
+                    <Duration ms={result.durationMsFromStartedAt} hours />
+                  </span>
+                  <span className="text-sm">
+                    ({result.fianalizedAt.toLocaleTimeString()})
+                  </span>
+                </time>
+                <span>{result.result.transcript}</span>
+              </p>
               <p>
                 <Translation
-                  text={sentence}
-                  sourceLanguage={sourceLanguage}
-                  targetLanguage={distLanguage}
+                  text={result.result.transcript}
+                  sourceLanguage={config.sourceLanguage}
+                  targetLanguage={config.targetLanguage}
                 />
               </p>
             </li>
           ))}
-        {isRewriting && (
-          <li className="text-sm text-gray-400 text-center flex items-center gap-2">
-            <Spinner />
-            <span>Finalizing...</span>
-          </li>
-        )}
-        {interimTranscript.length > 0 && (
-          <li>
-            <p className="text-gray-400">{interimTranscript}</p>
-            <p>
-              <Translation
-                text={interimTranscript}
-                sourceLanguage={sourceLanguage}
-                targetLanguage={distLanguage}
-              />
-            </p>
-          </li>
-        )}
-      </ol>
-      <div ref={endMarkerRef}></div>
+          {interimResults.map((result) => (
+            <li key={result[0].transcript}>
+              <p className="text-gray-400">{result[0].transcript}</p>
+              <p>
+                <Translation
+                  text={result[0].transcript}
+                  sourceLanguage={config.sourceLanguage}
+                  targetLanguage={config.targetLanguage}
+                  appendBuffer
+                />
+              </p>
+            </li>
+          ))}
+        </ol>
+        <div ref={endMarkerRef}></div>
+      </div>
     </div>
   );
-}
-
-function Spinner() {
-  return <LoaderIcon className={`w-4 h-4 animate-spin`} />;
 }

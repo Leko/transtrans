@@ -1,0 +1,148 @@
+"use client";
+
+import { ConfigurationValue } from "@/components/Configuration";
+import { useEffect, useState } from "react";
+
+type Availability =
+  | { status: "initializing" }
+  | { status: "available" }
+  | { status: "downloadable" }
+  | { status: "downloading"; progress: ProgressEvent }
+  | { status: "unavailable"; error: string };
+
+const features = [
+  {
+    name: "Speech Recognition",
+    compatibilityUrl:
+      "https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition#browser_compatibility",
+    async init(config) {
+      // @ts-expect-error https://developer.mozilla.org/ja/docs/Web/API/SpeechRecognition/available_static
+      return await SpeechRecognition.available({
+        langs: [config.sourceLanguage],
+      });
+    },
+    async download(config, onProgress) {
+      onProgress(
+        new ProgressEvent("download", {
+          lengthComputable: true,
+          loaded: 0,
+          total: 100,
+        })
+      );
+      // @ts-expect-error https://developer.mozilla.org/ja/docs/Web/API/SpeechRecognition/install_static
+      await SpeechRecognition.install({
+        langs: [config.sourceLanguage],
+        processLocally: true,
+      });
+      onProgress(
+        new ProgressEvent("download", {
+          lengthComputable: true,
+          loaded: 100,
+          total: 100,
+        })
+      );
+    },
+  },
+  {
+    name: "Rewriter",
+    compatibilityUrl:
+      "https://github.com/webmachinelearning/writing-assistance-apis",
+    async init() {
+      // @ts-expect-error https://developer.chrome.com/docs/ai/rewriter-api?hl=ja
+      return "Rewriter" in self ? await Rewriter.availability() : "unavailable";
+    },
+    async download(config, onProgress) {
+      // @ts-expect-error https://developer.chrome.com/docs/ai/rewriter-api?hl=ja
+      const translator = await Rewriter.create({
+        // @ts-expect-error Needs to be identify type of `m`
+        monitor(m) {
+          m.addEventListener("downloadprogress", onProgress);
+        },
+      });
+      await translator.destroy();
+    },
+  },
+  {
+    name: "Translator",
+    compatibilityUrl:
+      "https://developer.mozilla.org/en-US/docs/Web/API/Translator#browser_compatibility",
+    async init(config) {
+      return "Translator" in self
+        ? // @ts-expect-error https://developer.chrome.com/docs/ai/translator-api?hl=ja
+          await Translator.availability({
+            sourceLanguage: config.sourceLanguage,
+            targetLanguage: config.targetLanguage,
+          })
+        : "unavailable";
+    },
+    async download(config, onProgress) {
+      // @ts-expect-error https://developer.chrome.com/docs/ai/translator-api?hl=ja
+      const translator = await Translator.create({
+        sourceLanguage: config.sourceLanguage,
+        targetLanguage: config.targetLanguage,
+        // @ts-expect-error Needs to be identify type of `m`
+        monitor(m) {
+          m.addEventListener("downloadprogress", onProgress);
+        },
+      });
+      await translator.destroy();
+    },
+  },
+] as const satisfies {
+  name: string;
+  compatibilityUrl: string;
+  init: (config: ConfigurationValue) => Promise<Availability["status"]>;
+  download: (
+    config: ConfigurationValue,
+    onProgress: (progress: ProgressEvent) => void
+  ) => Promise<void>;
+}[];
+
+export function useAPIAvailability(config: ConfigurationValue) {
+  const [availabilities, setAvailabilities] = useState<
+    ({ name: (typeof features)[number]["name"] } & Availability)[]
+  >(
+    features.map((feature) => ({
+      name: feature.name,
+      status: "initializing",
+    }))
+  );
+
+  function download(featureName: (typeof features)[number]["name"]) {
+    const feature = features.find((feature) => feature.name === featureName);
+    if (!feature) {
+      throw new Error(`Feature ${featureName} not found`);
+    }
+    return feature.download(config, (progress: ProgressEvent) => {
+      setAvailabilities((prev) =>
+        prev.map((availability) =>
+          availability.name === feature.name
+            ? { ...availability, status: "downloading", progress }
+            : availability
+        )
+      );
+    });
+  }
+
+  useEffect(() => {
+    Promise.allSettled(features.map((feature) => feature.init(config))).then(
+      (results) => {
+        setAvailabilities(
+          results.map((result, index) => ({
+            name: features[index].name,
+            status:
+              result.status === "fulfilled" ? result.value : "unavailable",
+            error:
+              result.status === "rejected"
+                ? result.reason instanceof Error
+                  ? result.reason.message
+                  : String(result.reason)
+                : null,
+          }))
+        );
+      }
+    );
+  }, [config]);
+
+  return { availabilities, download };
+}

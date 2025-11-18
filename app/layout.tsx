@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "@radix-ui/themes/styles.css";
 import "./globals.css";
+import { Theme } from "@radix-ui/themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +29,35 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Theme>
+          <div className="h-screen bg-black text-white font-sans flex flex-col">
+            <header className="flex-shrink-0 flex items-center justify-between p-4">
+              <h1 className="text-2xl font-bold">TransTrans</h1>
+              <nav>
+                <a
+                  href="https://github.com/Leko/transtrans"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </a>
+              </nav>
+            </header>
+            <main className="flex-1 min-h-0">{children}</main>
+            <footer className="flex-shrink-0">
+              <p className="text-sm text-center flex items-center justify-center gap-2 p-4">
+                &copy; 2025-
+                <a
+                  href="https://github.com/Leko"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Leko
+                </a>
+              </p>
+            </footer>
+          </div>
+        </Theme>
       </body>
     </html>
   );
