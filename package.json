@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/themes": "^3.2.1",

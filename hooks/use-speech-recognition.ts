@@ -37,7 +37,6 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
   const [interimResults, setInterimResults] = useState<
     SpeechRecognitionResult[]
   >([]);
-  const [interimTranscript, setInterimTranscript] = useState<string>("");
 
   const SpeechRecognition =
     typeof window !== "undefined"
@@ -72,7 +71,6 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
   }, [recognition]);
   const onResult = useCallback(
     (event: SpeechRecognitionEvent) => {
-      let interimTranscript = "";
       const interimResults = [];
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
@@ -85,11 +83,9 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
             },
           ]);
         } else {
-          interimTranscript += event.results[i][0].transcript + " ";
           interimResults.push(event.results[i]);
         }
       }
-      setInterimTranscript(interimTranscript.trim());
       setInterimResults(interimResults);
     },
     [state]
@@ -131,7 +127,6 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
 
   return {
     state,
-    interimTranscript,
     interimResults,
     finalResults,
     start,

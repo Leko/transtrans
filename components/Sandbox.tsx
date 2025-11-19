@@ -1,14 +1,18 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Configuration, { ConfigurationValue } from "./Configuration";
 import WebAPIAvailability from "./WebAPIAvailability";
 import Duration from "./Duration";
 import Translation from "./Translation";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { LoaderIcon } from "lucide-react";
+import { useRestorePunctuation } from "@/hooks/use-restore-punctuation";
+import { useTranslation } from "@/hooks/use-translation";
 
 export default function Sandbox() {
   const endMarkerRef = useRef<HTMLDivElement>(null);
+  const [keepScrollToBottom, setKeepScrollToBottom] = useState(true);
   const [config, setConfig] = useState<ConfigurationValue>({
     sourceLanguage: "en-US",
     targetLanguage: "ja-JP",
@@ -17,23 +21,35 @@ export default function Sandbox() {
     useSpeechRecognition({
       lang: config.sourceLanguage,
     });
+  const { punctuatedResults, isProcessing: isRestoringPunctuation } =
+    useRestorePunctuation({
+      sourceLanguage: config.sourceLanguage,
+      finalResults,
+    });
+  const { translatedResults, isProcessing: isTranslating } = useTranslation({
+    sourceLanguage: config.sourceLanguage,
+    targetLanguage: config.targetLanguage,
+    punctuatedResults,
+  });
 
-  const handleChange = (newConfig: ConfigurationValue) => {
+  const handleChange = useCallback((newConfig: ConfigurationValue) => {
     setConfig(newConfig);
-  };
-
-  const handleStart = (audioTrack: MediaStreamTrack) => {
-    start(audioTrack);
-  };
-
-  const handleStop = () => {
+  }, []);
+  const handleStart = useCallback(
+    (audioTrack: MediaStreamTrack) => {
+      start(audioTrack);
+    },
+    [start]
+  );
+  const handleStop = useCallback(() => {
     stop();
-  };
+  }, [stop]);
+
   useLayoutEffect(() => {
-    if (endMarkerRef.current) {
+    if (endMarkerRef.current && keepScrollToBottom) {
       endMarkerRef.current.scrollIntoView({ block: "nearest" });
     }
-  }, [interimResults, finalResults]);
+  }, [interimResults, finalResults, keepScrollToBottom]);
 
   return (
     <div className="h-full min-h-0 flex items-stretch justify-between gap-8 px-8">
@@ -52,8 +68,8 @@ export default function Sandbox() {
       </div>
       <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
         <ol className="flex flex-col gap-2">
-          {finalResults.map((result) => (
-            <li key={result.result.transcript}>
+          {translatedResults.map((result, i) => (
+            <li key={i}>
               <p className="text-gray-400 flex flex-col">
                 <time
                   dateTime={result.fianalizedAt.toISOString()}
@@ -66,17 +82,26 @@ export default function Sandbox() {
                     ({result.fianalizedAt.toLocaleTimeString()})
                   </span>
                 </time>
-                <span>{result.result.transcript}</span>
+                <span>{result.punctuated}</span>
               </p>
-              <p>
-                <Translation
-                  text={result.result.transcript}
-                  sourceLanguage={config.sourceLanguage}
-                  targetLanguage={config.targetLanguage}
-                />
-              </p>
+              <p>{result.translated}</p>
             </li>
           ))}
+          {isRestoringPunctuation && (
+            <li key="isRestoringPunctuation">
+              <p className="text-gray-400 flex items-center gap-2">
+                <LoaderIcon className="w-4 h-4 animate-spin" /> Restoring
+                punctuation...
+              </p>
+            </li>
+          )}
+          {isTranslating && (
+            <li key="isTranslating">
+              <p className="text-gray-400 flex items-center gap-2">
+                <LoaderIcon className="w-4 h-4 animate-spin" /> Translating...
+              </p>
+            </li>
+          )}
           {interimResults.map((result) => (
             <li key={result[0].transcript}>
               <p className="text-gray-400">{result[0].transcript}</p>
@@ -91,7 +116,39 @@ export default function Sandbox() {
             </li>
           ))}
         </ol>
-        <div ref={endMarkerRef}></div>
+        {!state.isListening && (
+          <div className="flex flex-col items-center justify-center max-w-xl mx-auto">
+            <h2>
+              <span className="text-xl font-bold">TransTrans</span> - Live
+              Transcription and Translation
+            </h2>
+
+            <h3 className="text-lg font-bold mt-4">How to start:</h3>
+            <ol className="list-decimal list-inside">
+              <li>Choose Source Language</li>
+              <li>Choose Target Language</li>
+              <li>Choose Audio Source</li>
+              <li>Click the start button</li>
+            </ol>
+
+            <h3 className="text-lg font-bold mt-4">How it works:</h3>
+            <p>
+              TransTrans uses the Web Speech Recognition API to transcribe your
+              speech in real-time. It then uses the Translation API to translate
+              the transcription into the target language.
+            </p>
+          </div>
+        )}
+        <div ref={endMarkerRef} className="flex justify-center gap-2">
+          <label className="flex items-center gap-2 text-gray-400">
+            <input
+              type="checkbox"
+              checked={keepScrollToBottom}
+              onChange={(e) => setKeepScrollToBottom(e.target.checked)}
+            />
+            Keep scroll to bottom
+          </label>
+        </div>
       </div>
     </div>
   );
