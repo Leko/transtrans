@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+// @ts-expect-error Translator is not a standard API yet
 const Translator = typeof window !== "undefined" ? window.Translator : null;
 let cache: Promise<typeof Translator> | null = null;
 

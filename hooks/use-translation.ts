@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Language } from "@/constants/language";
+import type { Language } from "@/constants/language";
 
+// @ts-expect-error Rewriter is not a standard API yet
 const Rewriter = typeof window !== "undefined" ? window.Rewriter : null;
-let rewriterPromise: Promise<typeof Rewriter> | null = null;
+let rewriterPromise: Promise<{
+  rewrite: (text: string) => Promise<string>;
+}> | null = null;
+
+// @ts-expect-error Translator is not a standard API yet
 const Translator = typeof window !== "undefined" ? window.Translator : null;
-let translatorPromise: Promise<typeof Translator> | null = null;
+let translatorPromise: Promise<{
+  translate: (text: string) => Promise<string>;
+}> | null = null;
 
 export function useTranslation<
   T extends {
@@ -42,10 +49,10 @@ export function useTranslation<
       .then(([translator, rewriter]) =>
         Promise.all(
           newResults.map(async (result) =>
-            translator.translate(
+            translator!.translate(
               // rewriteしてから翻訳をかけたほうが自然な翻訳になるが速度がネック...
               // 軽く比較検証をしてみたが、rewriterなしでは使い物にならないので無くすのではなく速度改善する方向で進める
-              await rewriter.rewrite(result.punctuated)
+              await rewriter!.rewrite(result.punctuated)
             )
           )
         )

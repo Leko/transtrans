@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { LoaderIcon } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useRestorePunctuation } from "@/hooks/use-restore-punctuation";
+import { useTranslation } from "@/hooks/use-translation";
 import Configuration, { ConfigurationValue } from "./Configuration";
 import WebAPIAvailability from "./WebAPIAvailability";
 import Duration from "./Duration";
 import Translation from "./Translation";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
-import { LoaderIcon } from "lucide-react";
-import { useRestorePunctuation } from "@/hooks/use-restore-punctuation";
-import { useTranslation } from "@/hooks/use-translation";
 
 export default function Sandbox() {
   const endMarkerRef = useRef<HTMLDivElement>(null);

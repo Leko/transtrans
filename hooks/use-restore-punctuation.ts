@@ -2,8 +2,8 @@
 
 import * as Comlink from "comlink";
 import { useEffect, useState } from "react";
-import { Language } from "@/constants/language";
-import { RemoteAPI } from "@/lib/nlp/restore-punctuation";
+import type { Language } from "@/constants/language";
+import type { RemoteAPI } from "@/lib/nlp/restore-punctuation";
 
 let worker: Comlink.Remote<RemoteAPI>;
 
