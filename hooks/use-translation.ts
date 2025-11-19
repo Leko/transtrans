@@ -44,6 +44,7 @@ export function useTranslation<
           newResults.map(async (result) =>
             translator.translate(
               // rewriteしてから翻訳をかけたほうが自然な翻訳になるが速度がネック...
+              // 軽く比較検証をしてみたが、rewriterなしでは使い物にならないので無くすのではなく速度改善する方向で進める
               await rewriter.rewrite(result.punctuated)
             )
           )

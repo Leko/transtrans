@@ -1,8 +1,11 @@
 "use client";
 
+import * as Comlink from "comlink";
 import { useEffect, useState } from "react";
-import { restorePunctuation } from "@/lib/nlp/restore-punctuation";
 import { Language } from "@/constants/language";
+import { RemoteAPI } from "@/lib/nlp/restore-punctuation";
+
+let worker: Comlink.Remote<RemoteAPI>;
 
 export function useRestorePunctuation<
   T extends {
@@ -26,9 +29,12 @@ export function useRestorePunctuation<
     const newResults = finalResults.slice(processedIndex + 1);
     if (newResults.length === 0) return;
 
+    worker ??= Comlink.wrap<RemoteAPI>(
+      new Worker(new URL("@/lib/nlp/restore-punctuation.ts", import.meta.url))
+    );
     Promise.all(
       newResults.map((result) =>
-        restorePunctuation(result.result.transcript, {
+        worker.restorePunctuation(result.result.transcript, {
           sourceLanguage,
         })
       )
