@@ -3,12 +3,14 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { LoaderIcon } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
-import { useRestorePunctuation } from "@/hooks/use-restore-punctuation";
 import { useTranslation } from "@/hooks/use-translation";
+import { useSummary } from "@/hooks/use-summary";
 import Configuration, { ConfigurationValue } from "./Configuration";
 import WebAPIAvailability from "./WebAPIAvailability";
 import Duration from "./Duration";
 import Translation from "./Translation";
+import Chat from "./Chat";
+import Onboarding from "./Onboarding";
 
 export default function Sandbox() {
   const endMarkerRef = useRef<HTMLDivElement>(null);
@@ -21,15 +23,14 @@ export default function Sandbox() {
     useSpeechRecognition({
       lang: config.sourceLanguage,
     });
-  const { punctuatedResults, isProcessing: isRestoringPunctuation } =
-    useRestorePunctuation({
-      sourceLanguage: config.sourceLanguage,
-      finalResults,
-    });
-  const { translatedResults, isProcessing: isTranslating } = useTranslation({
+  const { translatedResults } = useTranslation({
     sourceLanguage: config.sourceLanguage,
     targetLanguage: config.targetLanguage,
-    punctuatedResults,
+    finalResults,
+  });
+  const { summary } = useSummary({
+    finalResults: translatedResults,
+    config,
   });
 
   const handleChange = useCallback((newConfig: ConfigurationValue) => {
@@ -66,90 +67,86 @@ export default function Sandbox() {
         <h2 className="text-lg font-bold mt-4 mb-2">Web APIs Availability</h2>
         <WebAPIAvailability config={config} />
       </div>
-      <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
-        <ol className="flex flex-col gap-2">
-          {translatedResults.map((result, i) => (
-            <li key={i}>
-              <p className="text-gray-400 flex flex-col">
-                <time
-                  dateTime={result.fianalizedAt.toISOString()}
-                  className="text-gray-500 flex items-center gap-1"
-                >
-                  <span className="text-sm">
-                    <Duration ms={result.durationMsFromStartedAt} hours />
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
+          <ol className="flex flex-col gap-2">
+            {translatedResults.map((result, i) => (
+              <li key={i}>
+                <p className="text-gray-400 flex flex-col">
+                  <time
+                    dateTime={result.fianalizedAt.toISOString()}
+                    className="text-gray-500 flex items-center gap-1"
+                  >
+                    {!result.punctuated && !result.translated && (
+                      <LoaderIcon className="w-4 h-4 animate-spin" />
+                    )}
+                    <span className="text-sm">
+                      <Duration ms={result.durationMsFromStartedAt} hours />
+                    </span>
+                    <span className="text-sm">
+                      ({result.fianalizedAt.toLocaleTimeString()})
+                    </span>
+                  </time>
+                  {result.punctuated ? (
+                    <span>{result.punctuated}</span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {result.result.transcript}
+                    </span>
+                  )}
+                </p>
+                <p>
+                  {result.translated ? (
+                    <span>{result.translated}</span>
+                  ) : (
+                    <Translation
+                      text={result.result.transcript}
+                      sourceLanguage={config.sourceLanguage}
+                      targetLanguage={config.targetLanguage}
+                    />
+                  )}
+                </p>
+              </li>
+            ))}
+            {interimResults.map((result) => (
+              <li key={result[0].transcript}>
+                <p className="text-gray-400">{result[0].transcript}</p>
+                <p>
+                  <span className="inline-block min-h-[8em]">
+                    {/* &nbsp; necessary to prevent the scroll flickering */}
+                    <Translation
+                      text={result[0].transcript}
+                      sourceLanguage={config.sourceLanguage}
+                      targetLanguage={config.targetLanguage}
+                    />
+                    &nbsp;
                   </span>
-                  <span className="text-sm">
-                    ({result.fianalizedAt.toLocaleTimeString()})
-                  </span>
-                </time>
-                <span>{result.punctuated}</span>
-              </p>
-              <p>{result.translated}</p>
-            </li>
-          ))}
-          {isRestoringPunctuation && (
-            <li key="isRestoringPunctuation">
-              <p className="text-gray-400 flex items-center gap-2">
-                <LoaderIcon className="w-4 h-4 animate-spin" /> Restoring
-                punctuation...
-              </p>
-            </li>
+                </p>
+              </li>
+            ))}
+          </ol>
+          {!state.isListening && (
+            <div className="max-w-xl mx-auto">
+              <Onboarding />
+            </div>
           )}
-          {isTranslating && (
-            <li key="isTranslating">
-              <p className="text-gray-400 flex items-center gap-2">
-                <LoaderIcon className="w-4 h-4 animate-spin" /> Translating...
-              </p>
-            </li>
-          )}
-          {interimResults.map((result) => (
-            <li key={result[0].transcript}>
-              <p className="text-gray-400">{result[0].transcript}</p>
-              <p>
-                <Translation
-                  text={result[0].transcript}
-                  sourceLanguage={config.sourceLanguage}
-                  targetLanguage={config.targetLanguage}
-                  appendBuffer
-                />
-              </p>
-            </li>
-          ))}
-        </ol>
-        {!state.isListening && (
-          <div className="flex flex-col items-center justify-center max-w-xl mx-auto">
-            <h2>
-              <span className="text-xl font-bold">TransTrans</span> - Live
-              Transcription and Translation
-            </h2>
-
-            <h3 className="text-lg font-bold mt-4">How to start:</h3>
-            <ol className="list-decimal list-inside">
-              <li>Choose Source Language</li>
-              <li>Choose Target Language</li>
-              <li>Choose Audio Source</li>
-              <li>Click the start button</li>
-            </ol>
-
-            <h3 className="text-lg font-bold mt-4">How it works:</h3>
-            <p>
-              TransTrans uses the Web Speech Recognition API to transcribe your
-              speech in real-time. It then uses the Translation API to translate
-              the transcription into the target language.
-            </p>
+          <div ref={endMarkerRef} className="flex justify-center gap-2">
+            <label className="flex items-center gap-2 text-gray-400">
+              <input
+                type="checkbox"
+                checked={keepScrollToBottom}
+                onChange={(e) => setKeepScrollToBottom(e.target.checked)}
+              />
+              Keep scroll to bottom
+            </label>
           </div>
-        )}
-        <div ref={endMarkerRef} className="flex justify-center gap-2">
-          <label className="flex items-center gap-2 text-gray-400">
-            <input
-              type="checkbox"
-              checked={keepScrollToBottom}
-              onChange={(e) => setKeepScrollToBottom(e.target.checked)}
-            />
-            Keep scroll to bottom
-          </label>
+        </div>
+        <div className="pt-4 border-t border-gray-600">
+          <h3 className="text-lg font-bold">Key Points:</h3>
+          <pre className="whitespace-pre-wrap min-h-[7em]">{summary}</pre>
         </div>
       </div>
+      <Chat />
     </div>
   );
 }

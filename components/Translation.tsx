@@ -10,12 +10,10 @@ export default function Translation({
   text,
   sourceLanguage,
   targetLanguage,
-  appendBuffer = false,
 }: {
   text: string;
   sourceLanguage: string;
   targetLanguage: string;
-  appendBuffer?: boolean;
 }) {
   const [translation, setTranslation] = useState<string>("");
 
@@ -29,13 +27,5 @@ export default function Translation({
     cache!.then((t) => t.translate(text)).then(setTranslation);
   }, [text, sourceLanguage, targetLanguage]);
 
-  return (
-    <span
-      className="inline-block"
-      style={{ minHeight: appendBuffer ? "8em" : "auto" }}
-    >
-      {/* &nbsp; necessary to prevent the scroll flickering */}
-      {translation}&nbsp;
-    </span>
-  );
+  return translation;
 }

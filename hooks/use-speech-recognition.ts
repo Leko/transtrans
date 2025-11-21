@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-// TODO: 古い文章の確定
-// TODO: 一定時間経つとresultsが空配列になる・・・？とにかく結果がまっさらになってしまうのをなんとか状態管理する
-
 export function useSpeechRecognition({ lang }: { lang: string }) {
   const [state, setState] = useState<
     | {

@@ -3,41 +3,32 @@
 import { useEffect, useState } from "react";
 import type { Language } from "@/constants/language";
 
-// @ts-expect-error Rewriter is not a standard API yet
-const Rewriter = typeof window !== "undefined" ? window.Rewriter : null;
-let rewriterPromise: Promise<{
-  rewrite: (text: string) => Promise<string>;
-}> | null = null;
-
-// @ts-expect-error Translator is not a standard API yet
-const Translator = typeof window !== "undefined" ? window.Translator : null;
-let translatorPromise: Promise<{
-  translate: (text: string) => Promise<string>;
-}> | null = null;
+let rewriterPromise: Promise<Rewriter> | null = null;
+let translatorPromise: Promise<Translator> | null = null;
+let proofreaderPromise: Promise<Proofreader> | null = null;
 
 export function useTranslation<
   T extends {
     result: SpeechRecognitionAlternative;
     fianalizedAt: Date;
     durationMsFromStartedAt: number;
-    punctuated: string;
   }
 >({
   sourceLanguage,
   targetLanguage,
-  punctuatedResults,
+  finalResults,
 }: {
   sourceLanguage: Language;
   targetLanguage: Language;
-  punctuatedResults: T[];
+  finalResults: T[];
 }) {
   const [processedIndex, setProcessedIndex] = useState(-1);
   const [translatedResults, setTranslatedResults] = useState<
-    (T & { translated: string })[]
+    (T & { punctuated?: string; translated?: string })[]
   >([]);
 
   useEffect(() => {
-    const newResults = punctuatedResults.slice(processedIndex + 1);
+    const newResults = finalResults.slice(processedIndex + 1);
     if (newResults.length === 0) return;
 
     rewriterPromise ??= Rewriter.create({});
@@ -45,32 +36,41 @@ export function useTranslation<
       sourceLanguage: sourceLanguage.split("-")[0],
       targetLanguage: targetLanguage.split("-")[0],
     });
-    Promise.all([translatorPromise, rewriterPromise])
-      .then(([translator, rewriter]) =>
-        Promise.all(
-          newResults.map(async (result) =>
-            translator!.translate(
-              // rewriteしてから翻訳をかけたほうが自然な翻訳になるが速度がネック...
-              // 軽く比較検証をしてみたが、rewriterなしでは使い物にならないので無くすのではなく速度改善する方向で進める
-              await rewriter!.rewrite(result.punctuated)
-            )
-          )
-        )
-      )
-      .then((results) => {
+    proofreaderPromise ??= Proofreader.create({});
+    setTranslatedResults((prev) => [
+      ...prev.slice(0, processedIndex + 1),
+      newResults[0],
+    ]);
+    Promise.all([translatorPromise, rewriterPromise, proofreaderPromise]).then(
+      async ([translator, rewriter, proofreader]) => {
+        const { correctedInput } = await proofreader.proofread(
+          newResults[0].result.transcript
+        );
+
+        // rewriteしてから翻訳をかけたほうが自然な翻訳になるが速度がネック...
+        // 軽く比較検証をしてみたが、rewriterなしでは使い物にならないので無くすのではなく速度改善する方向で進めたい
+        const rewritten = await rewriter.rewrite(correctedInput);
+        const translated = await translator.translate(rewritten);
         setTranslatedResults((prev) => [
-          ...prev,
-          ...results.map((result, index) => ({
-            ...punctuatedResults[processedIndex + index + 1],
-            translated: result,
-          })),
+          ...prev.slice(0, processedIndex + 1),
+          { ...newResults[0], punctuated: correctedInput, translated },
         ]);
-        setProcessedIndex(punctuatedResults.length - 1);
-      });
-  }, [punctuatedResults, sourceLanguage, targetLanguage, processedIndex]);
+        setProcessedIndex((prev) => prev + 1);
+
+        console.log({
+          original: newResults[0].result.transcript,
+          punctuated: correctedInput,
+          Ppunctuated: await proofreader.proofread(correctedInput),
+          rewritten,
+          Prewritten: await proofreader.proofread(rewritten),
+          translated,
+          Ptranslated: await translator.translate(correctedInput),
+        });
+      }
+    );
+  }, [finalResults, sourceLanguage, targetLanguage, processedIndex]);
 
   return {
     translatedResults,
-    isProcessing: processedIndex + 1 !== punctuatedResults.length,
   };
 }

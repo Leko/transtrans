@@ -31,7 +31,7 @@ export default function RootLayout({
       >
         <Theme>
           <div className="h-screen bg-black text-white font-sans flex flex-col">
-            <header className="flex-shrink-0 flex items-center justify-between p-4">
+            <header className="shrink-0 flex items-center justify-between p-4">
               <h1 className="text-2xl font-bold">TransTrans</h1>
               <nav>
                 <a
@@ -44,7 +44,7 @@ export default function RootLayout({
               </nav>
             </header>
             <main className="flex-1 min-h-0">{children}</main>
-            <footer className="flex-shrink-0">
+            <footer className="shrink-0">
               <p className="text-sm text-center flex items-center justify-center gap-2 p-4">
                 &copy; 2025-
                 <a

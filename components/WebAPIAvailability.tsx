@@ -48,7 +48,7 @@ export default function WebAPIAvailability({
                     </span>
                   ) : (
                     <span className="text-gray-500">
-                      <ClockIcon className="w-4 h-4 animate-spin" />
+                      <ClockIcon className="w-4 h-4" />
                     </span>
                   )}
                 </Tooltip.Trigger>

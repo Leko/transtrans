@@ -48,13 +48,10 @@ const features = [
     compatibilityUrl:
       "https://github.com/webmachinelearning/writing-assistance-apis",
     async init() {
-      // @ts-expect-error https://developer.chrome.com/docs/ai/rewriter-api?hl=ja
       return "Rewriter" in self ? await Rewriter.availability() : "unavailable";
     },
     async download(config, onProgress) {
-      // @ts-expect-error https://developer.chrome.com/docs/ai/rewriter-api?hl=ja
       const translator = await Rewriter.create({
-        // @ts-expect-error Needs to be identify type of `m`
         monitor(m) {
           m.addEventListener("downloadprogress", onProgress);
         },
@@ -68,24 +65,60 @@ const features = [
       "https://developer.mozilla.org/en-US/docs/Web/API/Translator#browser_compatibility",
     async init(config) {
       return "Translator" in self
-        ? // @ts-expect-error https://developer.chrome.com/docs/ai/translator-api?hl=ja
-          await Translator.availability({
+        ? await Translator.availability({
             sourceLanguage: config.sourceLanguage,
             targetLanguage: config.targetLanguage,
           })
         : "unavailable";
     },
     async download(config, onProgress) {
-      // @ts-expect-error https://developer.chrome.com/docs/ai/translator-api?hl=ja
       const translator = await Translator.create({
         sourceLanguage: config.sourceLanguage,
         targetLanguage: config.targetLanguage,
-        // @ts-expect-error Needs to be identify type of `m`
         monitor(m) {
           m.addEventListener("downloadprogress", onProgress);
         },
       });
       await translator.destroy();
+    },
+  },
+  {
+    name: "Proofreader",
+    compatibilityUrl:
+      "https://github.com/webmachinelearning/writing-assistance-apis",
+    async init(config) {
+      return "Proofreader" in self
+        ? await Proofreader.availability({
+            expectedInputLanguages: [config.sourceLanguage],
+          })
+        : "unavailable";
+    },
+    async download(config, onProgress) {
+      const proofreader = await Proofreader.create({
+        expectedInputLanguages: [config.sourceLanguage],
+        monitor(m) {
+          m.addEventListener("downloadprogress", onProgress);
+        },
+      });
+      await proofreader.destroy();
+    },
+  },
+  {
+    name: "Summarizer",
+    compatibilityUrl:
+      "https://developer.mozilla.org/en-US/docs/Web/API/Summarizer#browser_compatibility",
+    async init(config) {
+      return "Summarizer" in self
+        ? await Summarizer.availability({})
+        : "unavailable";
+    },
+    async download(config, onProgress) {
+      const proofreader = await Summarizer.create({
+        monitor(m) {
+          m.addEventListener("downloadprogress", onProgress);
+        },
+      });
+      await proofreader.destroy();
     },
   },
 ] as const satisfies {
@@ -113,15 +146,34 @@ export function useAPIAvailability(config: ConfigurationValue) {
     if (!feature) {
       throw new Error(`Feature ${featureName} not found`);
     }
-    return feature.download(config, (progress: ProgressEvent) => {
-      setAvailabilities((prev) =>
-        prev.map((availability) =>
-          availability.name === feature.name
-            ? { ...availability, status: "downloading", progress }
-            : availability
-        )
-      );
-    });
+    return feature
+      .download(config, (progress: ProgressEvent) => {
+        setAvailabilities((prev) =>
+          prev.map((availability) =>
+            availability.name === feature.name
+              ? { ...availability, status: "downloading", progress }
+              : availability
+          )
+        );
+      })
+      .then(() => {
+        setAvailabilities((prev) =>
+          prev.map((availability) =>
+            availability.name === feature.name
+              ? { ...availability, status: "available" }
+              : availability
+          )
+        );
+      })
+      .catch((error) => {
+        setAvailabilities((prev) =>
+          prev.map((availability) =>
+            availability.name === feature.name
+              ? { ...availability, status: "unavailable", error: error.message }
+              : availability
+          )
+        );
+      });
   }
 
   useEffect(() => {
