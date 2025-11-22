@@ -12,10 +12,7 @@ export default function AudioLevelMeter({ audioTrack }: AudioLevelMeterProps) {
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!audioTrack) {
-      setAudioLevel(0);
-      return;
-    }
+    if (!audioTrack) return;
 
     const stream = new MediaStream([audioTrack]);
     const audioContext = new AudioContext();

@@ -56,22 +56,27 @@ export default function Configuration({
 
   // マイクストリームの取得
   useEffect(() => {
-    if (audioSourceType === "microphone" && audioDeviceId && !isListening) {
-      navigator.mediaDevices
-        .getUserMedia({
-          audio: { deviceId: { exact: audioDeviceId } },
-        })
-        .then((stream) => {
-          setMicrophoneStream(stream);
-        })
-        .catch((error) => {
-          console.error("Failed to get microphone:", error);
-        });
+    if (audioSourceType !== "microphone" || !audioDeviceId || isListening) {
+      return;
     }
 
+    let currentStream: MediaStream | null = null;
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: { deviceId: { exact: audioDeviceId } },
+      })
+      .then((stream) => {
+        currentStream = stream;
+        setMicrophoneStream(stream);
+      })
+      .catch((error) => {
+        console.error("Failed to get microphone:", error);
+      });
+
     return () => {
-      if (microphoneStream && audioSourceType !== "microphone") {
-        microphoneStream.getTracks().forEach((track) => track.stop());
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
         setMicrophoneStream(null);
       }
     };
@@ -84,7 +89,6 @@ export default function Configuration({
       !screenShareStream &&
       !isListening
     ) {
-      setScreenShareError(null);
       navigator.mediaDevices
         .getDisplayMedia({ video: true, audio: true })
         .then((stream) => {
@@ -145,6 +149,9 @@ export default function Configuration({
     if (screenShareStream) {
       screenShareStream.getTracks().forEach((track) => track.stop());
       setScreenShareStream(null);
+    }
+    if (newAudioSourceType === "screen-share") {
+      setScreenShareError(null);
     }
     setAudioSourceType(newAudioSourceType);
   };

@@ -51,7 +51,7 @@ export class ClientSideChatTransport
           let downloadProgressId: string | undefined;
 
           // Download/prepare model with progress monitoring
-          const session = await model.createSessionWithProgress(
+          await model.createSessionWithProgress(
             (progress: number) => {
               const percent = Math.round(progress * 100);
 

@@ -107,7 +107,7 @@ const features = [
     name: "Summarizer",
     compatibilityUrl:
       "https://developer.mozilla.org/en-US/docs/Web/API/Summarizer#browser_compatibility",
-    async init(config) {
+    async init() {
       return "Summarizer" in self
         ? await Summarizer.availability({})
         : "unavailable";
