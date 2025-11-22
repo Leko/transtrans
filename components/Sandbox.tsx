@@ -176,7 +176,7 @@ export default function Sandbox() {
           <pre className="whitespace-pre-wrap min-h-[7em]">{summary}</pre>
         </div>
       </div>
-      <Chat />
+      {process.env.NODE_ENV === "development" && <Chat />}
     </div>
   );
 }
