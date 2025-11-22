@@ -29,6 +29,7 @@ npx tsc --noEmit
 
 - **Type checking**: Use `npx tsc --noEmit` for type checking during development. Avoid using `npm run build` as it requires restarting the development server.
 - **Linting**: Use `npm run lint` for code quality checks.
+- **Code change verification**: After making any code changes that affect syntax (excluding text/comment-only changes), always run both `npm run lint` and `npx tsc --noEmit`. Verify the validity of the changes and confirm there are no errors before considering the task complete.
 
 ## Architecture
 

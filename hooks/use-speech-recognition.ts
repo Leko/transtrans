@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function useSpeechRecognition({ lang }: { lang: string }) {
   const [state, setState] = useState<
@@ -35,6 +35,9 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
     SpeechRecognitionResult[]
   >([]);
 
+  const shouldContinueRef = useRef(false);
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null);
+
   const SpeechRecognition =
     typeof window !== "undefined"
       ? window.SpeechRecognition || window.webkitSpeechRecognition
@@ -64,7 +67,9 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
       startedAt: null,
       error: null,
     });
-    recognition.start();
+    if (shouldContinueRef.current && audioTrackRef.current) {
+      recognition.start(audioTrackRef.current);
+    }
   }, [recognition]);
   const onResult = useCallback(
     (event: SpeechRecognitionEvent) => {
@@ -90,11 +95,15 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
 
   const start = useCallback(
     (audioTrack: MediaStreamTrack) => {
+      audioTrackRef.current = audioTrack;
+      shouldContinueRef.current = true;
       recognition.start(audioTrack);
     },
     [recognition]
   );
   const stop = useCallback(() => {
+    shouldContinueRef.current = false;
+    audioTrackRef.current = null;
     recognition.abort();
     setState({
       isListening: false,

@@ -393,7 +393,18 @@ export default function Configuration({
       <div className="w-full">
         {isListening ? (
           <button
-            onClick={onStop}
+            onClick={() => {
+              if (microphoneStream) {
+                microphoneStream.getTracks().forEach((track) => track.stop());
+                setMicrophoneStream(null);
+              }
+              if (screenShareStream) {
+                screenShareStream.getTracks().forEach((track) => track.stop());
+                setScreenShareStream(null);
+              }
+              setAudioSourceType(null);
+              onStop();
+            }}
             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium transition-colors"
           >
             Stop
