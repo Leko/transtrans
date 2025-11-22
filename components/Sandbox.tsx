@@ -125,7 +125,7 @@ export default function Sandbox() {
               </li>
             ))}
           </ol>
-          {!state.isListening && (
+          {!state.isListening && finalResults.length === 0 && (
             <div className="max-w-xl mx-auto">
               <Onboarding />
             </div>
