@@ -20,7 +20,15 @@ npm start
 
 # Run linter
 npm run lint
+
+# Type check (use this instead of build during development)
+npx tsc --noEmit
 ```
+
+## Development Process
+
+- **Type checking**: Use `npx tsc --noEmit` for type checking during development. Avoid using `npm run build` as it requires restarting the development server.
+- **Linting**: Use `npm run lint` for code quality checks.
 
 ## Architecture
 
