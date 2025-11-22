@@ -8,19 +8,42 @@ import {
   XIcon,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ConfigurationValue } from "./Configuration";
-import { useAPIAvailability } from "@/hooks/api-availability";
 import { CircularProgress } from "./CircularProgress";
+import { FeatureAvailability } from "@/hooks/api-availability";
 
 interface WebAPIAvailabilityProps {
-  config: ConfigurationValue;
+  availabilities: FeatureAvailability[];
+  onRequestDownload: (name: FeatureAvailability["name"]) => void;
 }
 
-export default function WebAPIAvailability({
-  config,
-}: WebAPIAvailabilityProps) {
-  const { availabilities, download } = useAPIAvailability(config);
+export const InitializingIcon = ({ size = 4 }: { size?: number }) => (
+  <LoaderIcon className={`size-${size} animate-spin`} />
+);
+export const AvailableIcon = ({ size = 4 }: { size?: number }) => (
+  <span className="text-green-500">
+    <CheckIcon className={`size-${size}`} />
+  </span>
+);
+export const UnavailableIcon = ({ size = 4 }: { size?: number }) => (
+  <span className="text-red-500">
+    <XIcon className={`size-${size}`} />
+  </span>
+);
+export const DownloadableIcon = ({ size = 4 }: { size?: number }) => (
+  <span className="text-yellow-500">
+    <CloudDownloadIcon className={`size-${size}`} />
+  </span>
+);
+export const DownloadingIcon = ({ size = 4 }: { size?: number }) => (
+  <span className="text-gray-500">
+    <ClockIcon className={`size-${size}`} />
+  </span>
+);
 
+export default function WebAPIAvailability({
+  availabilities,
+  onRequestDownload,
+}: WebAPIAvailabilityProps) {
   return (
     <Tooltip.Provider>
       <ul>
@@ -33,23 +56,15 @@ export default function WebAPIAvailability({
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   {availability.status === "initializing" ? (
-                    <LoaderIcon className={`w-4 h-4 animate-spin`} />
-                  ) : availability.status === "available" ? (
-                    <span className="text-green-500">
-                      <CheckIcon className="w-4 h-4" />
-                    </span>
+                    <InitializingIcon />
+                  ) : availability.status === "downloading" ? (
+                    <DownloadingIcon />
                   ) : availability.status === "unavailable" ? (
-                    <span className="text-red-500">
-                      <XIcon className="w-4 h-4" />
-                    </span>
+                    <UnavailableIcon />
                   ) : availability.status === "downloadable" ? (
-                    <span className="text-yellow-500">
-                      <CloudDownloadIcon className="w-4 h-4" />
-                    </span>
+                    <DownloadableIcon />
                   ) : (
-                    <span className="text-gray-500">
-                      <ClockIcon className="w-4 h-4" />
-                    </span>
+                    <AvailableIcon />
                   )}
                 </Tooltip.Trigger>
                 <Tooltip.Portal>
@@ -68,7 +83,7 @@ export default function WebAPIAvailability({
             </div>
             {availability.status === "downloadable" && (
               <button
-                onClick={() => download(availability.name)}
+                onClick={() => onRequestDownload(availability.name)}
                 className="text-xs text-gray-400 hover:text-gray-100 transition-colors px-2 py-1 rounded-md border border-gray-600 hover:border-gray-500 cursor-pointer"
               >
                 Download

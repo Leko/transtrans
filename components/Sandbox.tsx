@@ -6,11 +6,18 @@ import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useTranslation } from "@/hooks/use-translation";
 import { useSummary } from "@/hooks/use-summary";
 import Configuration, { ConfigurationValue } from "./Configuration";
-import WebAPIAvailability from "./WebAPIAvailability";
+import WebAPIAvailability, {
+  AvailableIcon,
+  DownloadableIcon,
+  DownloadingIcon,
+  InitializingIcon,
+  UnavailableIcon,
+} from "./WebAPIAvailability";
 import Duration from "./Duration";
 import Translation from "./Translation";
 import Chat from "./Chat";
 import Onboarding from "./Onboarding";
+import { useAPIAvailability } from "@/hooks/api-availability";
 
 export default function Sandbox() {
   const endMarkerRef = useRef<HTMLDivElement>(null);
@@ -19,6 +26,7 @@ export default function Sandbox() {
     sourceLanguage: "en-US",
     targetLanguage: "ja-JP",
   });
+  const { availabilities, download } = useAPIAvailability(config);
   const { state, interimResults, finalResults, start, stop } =
     useSpeechRecognition({
       lang: config.sourceLanguage,
@@ -64,8 +72,30 @@ export default function Sandbox() {
           onStop={handleStop}
         />
 
-        <h2 className="text-lg font-bold mt-4 mb-2">Web APIs Availability</h2>
-        <WebAPIAvailability config={config} />
+        <details open className="mt-4 mb-2">
+          <summary>
+            <h2 className="text-lg font-bold inline-flex items-center gap-2">
+              <span>
+                {availabilities.some((a) => a.status === "initializing") ? (
+                  <InitializingIcon size={6} />
+                ) : availabilities.some((a) => a.status === "downloading") ? (
+                  <DownloadingIcon size={6} />
+                ) : availabilities.some((a) => a.status === "unavailable") ? (
+                  <UnavailableIcon size={6} />
+                ) : availabilities.some((a) => a.status === "downloadable") ? (
+                  <DownloadableIcon size={6} />
+                ) : (
+                  <AvailableIcon size={6} />
+                )}
+              </span>
+              <span>Web APIs Availability</span>
+            </h2>
+          </summary>
+          <WebAPIAvailability
+            availabilities={availabilities}
+            onRequestDownload={download}
+          />
+        </details>
       </div>
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">

@@ -10,6 +10,10 @@ type Availability =
   | { status: "downloading"; progress: ProgressEvent }
   | { status: "unavailable"; error: string };
 
+export type FeatureAvailability = {
+  name: (typeof features)[number]["name"];
+} & Availability;
+
 const features = [
   {
     name: "Speech Recognition",
@@ -132,9 +136,7 @@ const features = [
 }[];
 
 export function useAPIAvailability(config: ConfigurationValue) {
-  const [availabilities, setAvailabilities] = useState<
-    ({ name: (typeof features)[number]["name"] } & Availability)[]
-  >(
+  const [availabilities, setAvailabilities] = useState<FeatureAvailability[]>(
     features.map((feature) => ({
       name: feature.name,
       status: "initializing",
