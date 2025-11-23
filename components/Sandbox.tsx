@@ -39,7 +39,7 @@ export default function Sandbox() {
     targetLanguage: config.targetLanguage,
     finalResults,
   });
-  const { summary } = useSummary({
+  const { summary, inputQuota, inputUsage } = useSummary({
     finalResults: translatedResults,
     config,
   });
@@ -214,7 +214,13 @@ export default function Sandbox() {
           </div>
         </div>
         <div className="pt-4 border-t border-gray-600">
-          <h3 className="text-lg font-bold">Key Points:</h3>
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span>Key Points:</span>
+            <span className="text-gray-500 text-sm">
+              ({inputUsage || "?"} / {inputQuota || "?"} tokens used. When
+              reaching the quota, the summary will be truncated)
+            </span>
+          </h3>
           <pre className="whitespace-pre-wrap min-h-[7em]">{summary}</pre>
         </div>
       </div>
