@@ -10,7 +10,8 @@ export function useSummary<
   T extends {
     result: SpeechRecognitionAlternative;
     fianalizedAt: Date;
-    durationMsFromStartedAt: number;
+    startMs: number;
+    endMs: number;
     punctuated?: string;
     translated?: string;
   }

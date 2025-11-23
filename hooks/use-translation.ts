@@ -7,13 +7,16 @@ let rewriterPromise: Promise<Rewriter> | null = null;
 let translatorPromise: Promise<Translator> | null = null;
 let proofreaderPromise: Promise<Proofreader> | null = null;
 
-export function useTranslation<
-  T extends {
-    result: SpeechRecognitionAlternative;
-    fianalizedAt: Date;
-    durationMsFromStartedAt: number;
-  }
->({
+export type TranslatedResult = {
+  result: SpeechRecognitionAlternative;
+  fianalizedAt: Date;
+  endMs: number;
+  startMs: number;
+  punctuated?: string;
+  translated?: string;
+};
+
+export function useTranslation<T extends TranslatedResult>({
   sourceLanguage,
   targetLanguage,
   finalResults,
