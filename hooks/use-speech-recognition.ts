@@ -28,7 +28,8 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
     {
       result: SpeechRecognitionAlternative;
       fianalizedAt: Date;
-      durationMsFromStartedAt: number;
+      endMs: number;
+      startMs: number;
     }[]
   >([]);
   const [interimResults, setInterimResults] = useState<
@@ -81,7 +82,8 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
             {
               result: event.results[i][0],
               fianalizedAt: new Date(),
-              durationMsFromStartedAt: Date.now() - state.startedAt!.getTime(),
+              endMs: Date.now() - state.startedAt!.getTime(),
+              startMs: prev.length > 0 ? prev[prev.length - 1].endMs : 0,
             },
           ]);
         } else {

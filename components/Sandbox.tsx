@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { LoaderIcon } from "lucide-react";
+import { DownloadIcon, LoaderIcon } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useTranslation } from "@/hooks/use-translation";
 import { useSummary } from "@/hooks/use-summary";
@@ -18,6 +18,9 @@ import Translation from "./Translation";
 import Chat from "./Chat";
 import Onboarding from "./Onboarding";
 import { useAPIAvailability } from "@/hooks/api-availability";
+import { IconButton } from "@radix-ui/themes";
+import { toVTT } from "@/lib/vtt";
+import { downloadAsFile } from "@/lib/download";
 
 export default function Sandbox() {
   const endMarkerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +56,20 @@ export default function Sandbox() {
   const handleStop = useCallback(() => {
     stop();
   }, [stop]);
+
+  const handleDownloadTranslated = useCallback(() => {
+    const blob = new Blob([toVTT(translatedResults, "translated")], {
+      type: "text/vtt",
+    });
+    downloadAsFile(blob, "translated.vtt");
+  }, [translatedResults]);
+
+  const handleDownloadTranscript = useCallback(() => {
+    const blob = new Blob([toVTT(translatedResults, "punctuated")], {
+      type: "text/vtt",
+    });
+    downloadAsFile(blob, "transcript.vtt");
+  }, [translatedResults]);
 
   useLayoutEffect(() => {
     if (endMarkerRef.current && keepScrollToBottom) {
@@ -99,6 +116,30 @@ export default function Sandbox() {
       </div>
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
+          {translatedResults.length > 0 && (
+            // FIXME: pr-2がないとボタンがはみ出て横スクロールしてしまう
+            <div className="flex justify-end pr-2">
+              <div className="relative group">
+                <IconButton variant="ghost">
+                  <DownloadIcon className="size-6 text-white" />
+                </IconButton>
+                <div className="absolute right-0 top-full hidden group-hover:block bg-zinc-800 border border-gray-700 rounded-md p-1 shadow-lg min-w-[240px] z-50">
+                  <button
+                    onClick={handleDownloadTranscript}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
+                  >
+                    Download transcript (VTT)
+                  </button>
+                  <button
+                    onClick={handleDownloadTranslated}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
+                  >
+                    Download translated (VTT)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <ol className="flex flex-col gap-2">
             {translatedResults.map((result, i) => (
               <li key={i}>
@@ -110,17 +151,16 @@ export default function Sandbox() {
                     {!result.punctuated && !result.translated && (
                       <LoaderIcon className="w-4 h-4 animate-spin" />
                     )}
-                    <span className="text-sm">
-                      <Duration ms={result.durationMsFromStartedAt} hours />
-                    </span>
-                    <span className="text-sm">
-                      ({result.fianalizedAt.toLocaleTimeString()})
+                    <span className="text-sm inline-flex items-center gap-1">
+                      <Duration ms={result.startMs} />
+                      <span>-</span>
+                      <Duration ms={result.endMs} />
                     </span>
                   </time>
                   {result.punctuated ? (
                     <span>{result.punctuated}</span>
                   ) : (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {result.result.transcript}
                     </span>
                   )}
@@ -129,11 +169,13 @@ export default function Sandbox() {
                   {result.translated ? (
                     <span>{result.translated}</span>
                   ) : (
-                    <Translation
-                      text={result.result.transcript}
-                      sourceLanguage={config.sourceLanguage}
-                      targetLanguage={config.targetLanguage}
-                    />
+                    <span className="text-gray-500">
+                      <Translation
+                        text={result.result.transcript}
+                        sourceLanguage={config.sourceLanguage}
+                        targetLanguage={config.targetLanguage}
+                      />
+                    </span>
                   )}
                 </p>
               </li>
