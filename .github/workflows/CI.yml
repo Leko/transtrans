@@ -31,6 +31,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,4 +41,74 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
       - run: npm ci
-      - run: npm test -- --run
+      - name: Run tests with coverage
+        run: npm run test:coverage 2>&1 | tee coverage-output.txt
+      - name: Post coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('coverage-output.txt', 'utf8');
+
+            // Extract coverage table from output
+            const lines = output.split('\n');
+            const tableStart = lines.findIndex(line => line.includes('File') && line.includes('% Stmts'));
+            const tableEnd = lines.findIndex((line, i) => i > tableStart && line.match(/^-+\|/));
+
+            let coverageTable = '';
+            if (tableStart !== -1) {
+              const tableLines = lines.slice(tableStart, tableEnd + 1);
+              coverageTable = tableLines.join('\n');
+            }
+
+            // Extract summary line
+            const allFilesLine = lines.find(line => line.includes('All files'));
+            let summary = '';
+            if (allFilesLine) {
+              const match = allFilesLine.match(/\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/);
+              if (match) {
+                summary = `**Statements:** ${match[1]}% | **Branches:** ${match[2]}% | **Functions:** ${match[3]}% | **Lines:** ${match[4]}%`;
+              }
+            }
+
+            const body = `## Test Coverage Report
+
+            ${summary}
+
+            <details>
+            <summary>Coverage Details</summary>
+
+            \`\`\`
+            ${coverageTable}
+            \`\`\`
+
+            </details>`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('## Test Coverage Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
