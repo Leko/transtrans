@@ -53,11 +53,20 @@ jobs:
 
             // Extract coverage table from output
             const lines = output.split('\n');
-            const tableStart = lines.findIndex(line => line.includes('File') && line.includes('% Stmts'));
-            const tableEnd = lines.findIndex((line, i) => i > tableStart && line.match(/^-+\|/));
+
+            // Find all separator lines (------|------|...)
+            const separatorIndices = [];
+            lines.forEach((line, i) => {
+              if (line.match(/^-+\|/)) {
+                separatorIndices.push(i);
+              }
+            });
 
             let coverageTable = '';
-            if (tableStart !== -1) {
+            if (separatorIndices.length >= 2) {
+              // Get from first separator to last separator
+              const tableStart = separatorIndices[0];
+              const tableEnd = separatorIndices[separatorIndices.length - 1];
               const tableLines = lines.slice(tableStart, tableEnd + 1);
               coverageTable = tableLines.join('\n');
             }
