@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Next.js 16 application (using React 19) that provides live transcription and translation using browser APIs. The app captures audio from screen sharing, transcribes it using the Web Speech Recognition API, enhances the transcription quality using the Rewriter API, and translates the text using the Translation API.
 
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+```
+
 ## Development Commands
 
 ```bash

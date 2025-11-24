@@ -9,13 +9,13 @@ import {
 
 let classifier: TokenClassificationPipeline;
 
-const ucFirst = (str: string) => {
+export const ucFirst = (str: string) => {
   const iterator = str[Symbol.iterator]();
   const first = iterator.next().value;
   return first ? first.toLocaleUpperCase() + str.slice(first.length) : str;
 };
 
-function splitIntoWords(text: string, sourceLanguage: Language) {
+export function splitIntoWords(text: string, sourceLanguage: Language) {
   const segmentor = new Intl.Segmenter(sourceLanguage, { granularity: "word" });
   return Array.from(segmentor.segment(text))
     .filter((segment) => segment.isWordLike)
