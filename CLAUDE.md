@@ -31,6 +31,19 @@ npx tsc --noEmit
 - **Linting**: Use `npm run lint` for code quality checks.
 - **Code change verification**: After making any code changes that affect syntax (excluding text/comment-only changes), always run both `npm run lint` and `npx tsc --noEmit`. Verify the validity of the changes and confirm there are no errors before considering the task complete.
 
+## Git Commit Guidelines
+
+- **Commit message format**: Follow [Conventional Commits](https://www.conventionalcommits.org/) specification
+- **Types**: Use appropriate type prefixes:
+  - `feat:` - New features
+  - `fix:` - Bug fixes
+  - `docs:` - Documentation changes
+  - `style:` - Code style changes (formatting, etc.)
+  - `refactor:` - Code refactoring
+  - `test:` - Adding or modifying tests
+  - `chore:` - Maintenance tasks
+- **Message content**: Focus on the "why" rather than the "what". Keep messages concise (1-2 sentences)
+
 ## Architecture
 
 ### Core Flow
