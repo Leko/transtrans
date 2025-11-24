@@ -55,7 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Theme>
-          <div className="h-screen bg-black text-white font-sans flex flex-col">
+          <div className="h-dvh bg-black text-white font-sans flex flex-col">
             <header className="shrink-0 flex items-center justify-between p-4">
               <h1 className="text-2xl font-bold">TransTrans</h1>
               <nav>
