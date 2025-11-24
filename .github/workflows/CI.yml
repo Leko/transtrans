@@ -43,6 +43,8 @@ jobs:
       - run: npm ci
       - name: Run tests with coverage
         run: npm run test:coverage 2>&1 | tee coverage-output.txt
+        env:
+          COLUMNS: 200
       - name: Post coverage comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
