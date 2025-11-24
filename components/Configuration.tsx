@@ -345,6 +345,7 @@ export default function Configuration({
                   onChange={() => handleAudioSourceTypeChange("screen-share")}
                   disabled={isListening}
                   className="w-4 h-4 text-blue-600 bg-zinc-800 border-gray-600 focus:ring-blue-500 disabled:opacity-50"
+                  data-testid="screen-share-radio"
                 />
                 <span className="text-sm text-gray-300">Screen Share</span>
               </label>
@@ -418,6 +419,7 @@ export default function Configuration({
               (audioSourceType === "screen-share" && !screenShareStream)
             }
             className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="start-button"
           >
             Start
           </button>

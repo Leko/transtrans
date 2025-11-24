@@ -140,9 +140,9 @@ export default function Sandbox() {
               </div>
             </div>
           )}
-          <ol className="flex flex-col gap-2">
+          <ol className="flex flex-col gap-2" data-testid="final-results">
             {translatedResults.map((result, i) => (
-              <li key={i}>
+              <li key={i} data-testid="final-result-item">
                 <p className="text-gray-400 flex flex-col">
                   <time
                     dateTime={result.fianalizedAt.toISOString()}
@@ -167,7 +167,7 @@ export default function Sandbox() {
                 </p>
                 <p>
                   {result.translated ? (
-                    <span>{result.translated}</span>
+                    <span data-testid="translated-text">{result.translated}</span>
                   ) : (
                     <span className="text-gray-500">
                       <Translation
@@ -221,7 +221,7 @@ export default function Sandbox() {
               reaching the quota, the summary will be truncated)
             </span>
           </h3>
-          <pre className="whitespace-pre-wrap min-h-[7em]">{summary}</pre>
+          <pre className="whitespace-pre-wrap min-h-[7em]" data-testid="summary">{summary}</pre>
         </div>
       </div>
       {process.env.NODE_ENV === "development" && <Chat />}
