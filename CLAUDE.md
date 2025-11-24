@@ -107,6 +107,17 @@ Currently hardcoded in `Sandbox.tsx`:
 - Types: Uses `@types/dom-speech-recognition` for Speech Recognition API types
 - `@ts-expect-error` used in `Sandbox.tsx:21-24` to handle server component initialization safely (recognition object is client-side only)
 
+### Type Assertion Guidelines
+
+- **Never use `as any`**: This is forbidden as it can be a source of bugs that bypass type checking
+- **Use `@ts-expect-error` with explanation**: When type errors cannot be resolved, use `@ts-expect-error` directive with an explicit comment explaining why the error cannot be resolved and must be suppressed
+
+**Example**:
+```typescript
+// @ts-expect-error Testing with non-standard codes not in Language union type
+sourceLanguage: "zh-CN",
+```
+
 ## Styling
 
 - Tailwind CSS v4 (using `@tailwindcss/postcss`)
