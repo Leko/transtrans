@@ -5,6 +5,7 @@ import {
   TokenClassificationOutput,
   TokenClassificationPipeline,
   TokenClassificationSingle,
+  type ProgressCallback,
 } from "@huggingface/transformers";
 
 let classifier: TokenClassificationPipeline;
@@ -23,16 +24,26 @@ export function splitIntoWords(text: string, sourceLanguage: Language) {
 }
 
 const api = {
-  async restorePunctuation(
-    text: string,
-    { sourceLanguage }: { sourceLanguage: Language }
-  ) {
+  async downloadModel(onProgress: ProgressCallback) {
     // @ts-expect-error Expression produces a union type that is too complex to represent.ts(2590)
     classifier ??= await pipeline(
       "token-classification",
       "ldenoue/distilbert-base-re-punctuate",
-      {}
+      { progress_callback: onProgress }
     );
+  },
+
+  async restorePunctuation(
+    text: string,
+    { sourceLanguage }: { sourceLanguage: Language }
+  ) {
+    if (!classifier) {
+      classifier = await pipeline(
+        "token-classification",
+        "ldenoue/distilbert-base-re-punctuate",
+        {}
+      );
+    }
     const results = await classifier(splitIntoWords(text, sourceLanguage));
 
     const punctuated = results

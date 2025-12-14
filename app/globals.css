@@ -120,3 +120,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Override Radix UI Themes selection style */
+.radix-themes ::selection {
+  @apply bg-blue-700/50 text-white;
+}
