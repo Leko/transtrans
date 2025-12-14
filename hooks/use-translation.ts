@@ -5,7 +5,38 @@ import type { Language } from "@/constants/language";
 
 let rewriterPromise: Promise<Rewriter> | null = null;
 let translatorPromise: Promise<Translator> | null = null;
-let proofreaderPromise: Promise<Proofreader> | null = null;
+let proofreaderPromise: Promise<Proofreader | null> | null = null;
+
+async function createProofreader(
+  sourceLanguage: Language
+): Promise<Proofreader | null> {
+  const availability =
+    "Proofreader" in self
+      ? await Proofreader.availability({
+          expectedInputLanguages: [sourceLanguage],
+        })
+      : "unavailable";
+
+  if (availability === "available" || availability === "downloadable") {
+    return await Proofreader.create({
+      expectedInputLanguages: [sourceLanguage],
+    });
+  }
+
+  // Proofreader not available for this language, return null
+  return null;
+}
+
+async function proofread(
+  proofreader: Proofreader | null,
+  text: string
+): Promise<string> {
+  if (!proofreader) {
+    return text;
+  }
+  const { correctedInput } = await proofreader.proofread(text);
+  return correctedInput;
+}
 
 export type TranslatedResult = {
   result: SpeechRecognitionAlternative;
@@ -39,14 +70,15 @@ export function useTranslation<T extends TranslatedResult>({
       sourceLanguage: sourceLanguage.split("-")[0],
       targetLanguage: targetLanguage.split("-")[0],
     });
-    proofreaderPromise ??= Proofreader.create({});
+    proofreaderPromise ??= createProofreader(sourceLanguage);
     setTranslatedResults((prev) => [
       ...prev.slice(0, processedIndex + 1),
       newResults[0],
     ]);
     Promise.all([translatorPromise, rewriterPromise, proofreaderPromise]).then(
       async ([translator, rewriter, proofreader]) => {
-        const { correctedInput } = await proofreader.proofread(
+        const correctedInput = await proofread(
+          proofreader,
           newResults[0].result.transcript
         );
 
@@ -59,16 +91,6 @@ export function useTranslation<T extends TranslatedResult>({
           { ...newResults[0], punctuated: correctedInput, translated },
         ]);
         setProcessedIndex((prev) => prev + 1);
-
-        console.log({
-          original: newResults[0].result.transcript,
-          punctuated: correctedInput,
-          Ppunctuated: await proofreader.proofread(correctedInput),
-          rewritten,
-          Prewritten: await proofreader.proofread(rewritten),
-          translated,
-          Ptranslated: await translator.translate(correctedInput),
-        });
       }
     );
   }, [finalResults, sourceLanguage, targetLanguage, processedIndex]);

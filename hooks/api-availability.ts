@@ -12,11 +12,13 @@ type Availability =
 
 export type FeatureAvailability = {
   name: (typeof features)[number]["name"];
+  required: boolean;
 } & Availability;
 
 const features = [
   {
     name: "Speech Recognition",
+    required: true,
     compatibilityUrl:
       "https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition#browser_compatibility",
     async init(config) {
@@ -49,6 +51,7 @@ const features = [
   },
   {
     name: "Rewriter",
+    required: true,
     compatibilityUrl:
       "https://github.com/webmachinelearning/writing-assistance-apis",
     async init() {
@@ -65,6 +68,7 @@ const features = [
   },
   {
     name: "Translator",
+    required: true,
     compatibilityUrl:
       "https://developer.mozilla.org/en-US/docs/Web/API/Translator#browser_compatibility",
     async init(config) {
@@ -88,6 +92,7 @@ const features = [
   },
   {
     name: "Proofreader",
+    required: false,
     compatibilityUrl:
       "https://github.com/webmachinelearning/writing-assistance-apis",
     async init(config) {
@@ -109,6 +114,7 @@ const features = [
   },
   {
     name: "Summarizer",
+    required: true,
     compatibilityUrl:
       "https://developer.mozilla.org/en-US/docs/Web/API/Summarizer#browser_compatibility",
     async init() {
@@ -127,6 +133,7 @@ const features = [
   },
 ] as const satisfies {
   name: string;
+  required: boolean;
   compatibilityUrl: string;
   init: (config: ConfigurationValue) => Promise<Availability["status"]>;
   download: (
@@ -139,6 +146,7 @@ export function useAPIAvailability(config: ConfigurationValue) {
   const [availabilities, setAvailabilities] = useState<FeatureAvailability[]>(
     features.map((feature) => ({
       name: feature.name,
+      required: feature.required,
       status: "initializing",
     }))
   );
@@ -182,17 +190,25 @@ export function useAPIAvailability(config: ConfigurationValue) {
     Promise.allSettled(features.map((feature) => feature.init(config))).then(
       (results) => {
         setAvailabilities(
-          results.map((result, index) => ({
-            name: features[index].name,
-            status:
-              result.status === "fulfilled" ? result.value : "unavailable",
-            error:
-              result.status === "rejected"
-                ? result.reason instanceof Error
+          results.map((result, index) => {
+            const status =
+              result.status === "fulfilled" ? result.value : "unavailable";
+            let error: string | null = null;
+            if (result.status === "rejected") {
+              error =
+                result.reason instanceof Error
                   ? result.reason.message
-                  : String(result.reason)
-                : null,
-          }))
+                  : String(result.reason);
+            } else if (status === "unavailable") {
+              error = `${features[index].name} API is not available in this browser`;
+            }
+            return {
+              name: features[index].name,
+              required: features[index].required,
+              status,
+              error,
+            };
+          })
         );
       }
     );

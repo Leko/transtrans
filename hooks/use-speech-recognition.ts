@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export function useSpeechRecognition({ lang }: { lang: string }) {
+export function useSpeechRecognition({
+  lang,
+  minConfidence = 0,
+}: {
+  lang: string;
+  minConfidence?: number;
+}) {
   const [state, setState] = useState<
     | {
         isListening: true;
@@ -76,23 +82,26 @@ export function useSpeechRecognition({ lang }: { lang: string }) {
     (event: SpeechRecognitionEvent) => {
       const interimResults = [];
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
+        const result = event.results[i];
+        const confidence = result[0].confidence;
+
+        if (result.isFinal) {
           setFinalResults((prev) => [
             ...prev,
             {
-              result: event.results[i][0],
+              result: result[0],
               fianalizedAt: new Date(),
               endMs: Date.now() - state.startedAt!.getTime(),
               startMs: prev.length > 0 ? prev[prev.length - 1].endMs : 0,
             },
           ]);
-        } else {
-          interimResults.push(event.results[i]);
+        } else if (confidence >= minConfidence) {
+          interimResults.push(result);
         }
       }
       setInterimResults(interimResults);
     },
-    [state]
+    [state, minConfidence]
   );
 
   const start = useCallback(

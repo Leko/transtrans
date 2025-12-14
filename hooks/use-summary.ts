@@ -106,7 +106,7 @@ export function useSummary<
                 )
             )
           )
-          .then((summary) => summary.join("\n"));
+          .then((summary) => summary.join("\n").replaceAll(/\* ?/g, "* "));
       })
       .then(setSummary)
       .catch((e) => {

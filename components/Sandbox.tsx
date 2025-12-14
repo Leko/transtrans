@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { DownloadIcon, LoaderIcon } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useTranslation } from "@/hooks/use-translation";
@@ -33,6 +39,7 @@ export default function Sandbox() {
   const { state, interimResults, finalResults, start, stop } =
     useSpeechRecognition({
       lang: config.sourceLanguage,
+      minConfidence: 0.2,
     });
   const { translatedResults } = useTranslation({
     sourceLanguage: config.sourceLanguage,
@@ -43,6 +50,10 @@ export default function Sandbox() {
     finalResults: translatedResults,
     config,
   });
+
+  useEffect(() => {
+    console.log("finalResults:", finalResults);
+  }, [finalResults]);
 
   const handleChange = useCallback((newConfig: ConfigurationValue) => {
     setConfig(newConfig);
@@ -92,12 +103,14 @@ export default function Sandbox() {
         <details open className="mt-4 mb-2">
           <summary>
             <h2 className="text-lg font-bold inline-flex items-center gap-2">
-              <span>
+              <span data-testid="api-availability-status">
                 {availabilities.some((a) => a.status === "initializing") ? (
                   <InitializingIcon size={6} />
                 ) : availabilities.some((a) => a.status === "downloading") ? (
                   <DownloadingIcon size={6} />
-                ) : availabilities.some((a) => a.status === "unavailable") ? (
+                ) : availabilities.some(
+                    (a) => a.required && a.status === "unavailable"
+                  ) ? (
                   <UnavailableIcon size={6} />
                 ) : availabilities.some((a) => a.status === "downloadable") ? (
                   <DownloadableIcon size={6} />
@@ -115,31 +128,30 @@ export default function Sandbox() {
         </details>
       </div>
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
-          {translatedResults.length > 0 && (
-            // FIXME: pr-2がないとボタンがはみ出て横スクロールしてしまう
-            <div className="flex justify-end pr-2">
-              <div className="relative group">
-                <IconButton variant="ghost">
-                  <DownloadIcon className="size-6 text-white" />
-                </IconButton>
-                <div className="absolute right-0 top-full hidden group-hover:block bg-zinc-800 border border-gray-700 rounded-md p-1 shadow-lg min-w-[240px] z-50">
-                  <button
-                    onClick={handleDownloadTranscript}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
-                  >
-                    Download transcript (VTT)
-                  </button>
-                  <button
-                    onClick={handleDownloadTranslated}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
-                  >
-                    Download translated (VTT)
-                  </button>
-                </div>
+        {translatedResults.length > 0 && (
+          <div className="flex justify-end pr-2 pb-2">
+            <div className="relative group">
+              <IconButton variant="ghost">
+                <DownloadIcon className="size-6 text-white" />
+              </IconButton>
+              <div className="absolute right-0 top-full hidden group-hover:block bg-zinc-800 border border-gray-700 rounded-md p-1 shadow-lg min-w-[240px] z-50">
+                <button
+                  onClick={handleDownloadTranscript}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
+                >
+                  Download transcript (VTT)
+                </button>
+                <button
+                  onClick={handleDownloadTranslated}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-100 hover:bg-zinc-700 rounded-sm"
+                >
+                  Download translated (VTT)
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0">
           <ol className="flex flex-col gap-2">
             {translatedResults.map((result, i) => (
               <li key={i}>
@@ -181,18 +193,16 @@ export default function Sandbox() {
               </li>
             ))}
             {interimResults.map((result) => (
-              <li key={result[0].transcript}>
+              <li key={result[0].transcript} className="last:min-h-[8em]">
                 <p className="text-gray-400">{result[0].transcript}</p>
                 <p>
-                  <span className="inline-block min-h-[8em]">
-                    {/* &nbsp; necessary to prevent the scroll flickering */}
-                    <Translation
-                      text={result[0].transcript}
-                      sourceLanguage={config.sourceLanguage}
-                      targetLanguage={config.targetLanguage}
-                    />
-                    &nbsp;
-                  </span>
+                  {/* &nbsp; necessary to prevent the scroll flickering */}
+                  <Translation
+                    text={result[0].transcript}
+                    sourceLanguage={config.sourceLanguage}
+                    targetLanguage={config.targetLanguage}
+                  />
+                  &nbsp;
                 </p>
               </li>
             ))}
