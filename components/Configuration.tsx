@@ -280,7 +280,10 @@ export default function Configuration({
           </label>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label
+                className="flex items-center gap-2 cursor-pointer"
+                data-testid="audio-source-microphone"
+              >
                 <input
                   type="radio"
                   name="audioSource"
@@ -336,7 +339,10 @@ export default function Configuration({
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label
+                className="flex items-center gap-2 cursor-pointer"
+                data-testid="audio-source-screen-share"
+              >
                 <input
                   type="radio"
                   name="audioSource"
@@ -393,6 +399,7 @@ export default function Configuration({
       <div className="w-full">
         {isListening ? (
           <button
+            data-testid="stop-button"
             onClick={() => {
               if (microphoneStream) {
                 microphoneStream.getTracks().forEach((track) => track.stop());
@@ -411,6 +418,7 @@ export default function Configuration({
           </button>
         ) : (
           <button
+            data-testid="start-button"
             onClick={handleStart}
             disabled={
               !audioSourceType ||

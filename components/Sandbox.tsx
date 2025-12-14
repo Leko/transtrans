@@ -92,7 +92,7 @@ export default function Sandbox() {
         <details open className="mt-4 mb-2">
           <summary>
             <h2 className="text-lg font-bold inline-flex items-center gap-2">
-              <span>
+              <span data-testid="api-availability-status">
                 {availabilities.some((a) => a.status === "initializing") ? (
                   <InitializingIcon size={6} />
                 ) : availabilities.some((a) => a.status === "downloading") ? (

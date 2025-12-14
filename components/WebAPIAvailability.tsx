@@ -17,25 +17,27 @@ interface WebAPIAvailabilityProps {
 }
 
 export const InitializingIcon = ({ size = 4 }: { size?: number }) => (
-  <LoaderIcon className={`size-${size} animate-spin`} />
+  <span data-testid="status-initializing">
+    <LoaderIcon className={`size-${size} animate-spin`} />
+  </span>
 );
 export const AvailableIcon = ({ size = 4 }: { size?: number }) => (
-  <span className="text-green-500">
+  <span className="text-green-500" data-testid="status-available">
     <CheckIcon className={`size-${size}`} />
   </span>
 );
 export const UnavailableIcon = ({ size = 4 }: { size?: number }) => (
-  <span className="text-red-500">
+  <span className="text-red-500" data-testid="status-unavailable">
     <XIcon className={`size-${size}`} />
   </span>
 );
 export const DownloadableIcon = ({ size = 4 }: { size?: number }) => (
-  <span className="text-yellow-500">
+  <span className="text-yellow-500" data-testid="status-downloadable">
     <CloudDownloadIcon className={`size-${size}`} />
   </span>
 );
 export const DownloadingIcon = ({ size = 4 }: { size?: number }) => (
-  <span className="text-gray-500">
+  <span className="text-gray-500" data-testid="status-downloading">
     <ClockIcon className={`size-${size}`} />
   </span>
 );
@@ -46,11 +48,12 @@ export default function WebAPIAvailability({
 }: WebAPIAvailabilityProps) {
   return (
     <Tooltip.Provider>
-      <ul>
+      <ul data-testid="api-availability-list">
         {availabilities.map((availability) => (
           <li
             key={availability.name}
             className="flex items-center justify-between"
+            data-testid={`api-status-${availability.name}`}
           >
             <div className="text-gray-400 flex items-center gap-2">
               <Tooltip.Root>
