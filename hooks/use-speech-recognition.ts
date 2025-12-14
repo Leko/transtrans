@@ -51,8 +51,15 @@ export function useSpeechRecognition({
       : null;
   // @ts-expect-error server componentでのみ起こるエラーでそのためにロジックを汚したくないので無視
   const recognition: SpeechRecognition = useMemo(() => {
-    return SpeechRecognition ? new SpeechRecognition() : null;
-  }, [SpeechRecognition]);
+    if (!SpeechRecognition) return null;
+    const rec = new SpeechRecognition();
+    rec.lang = lang;
+    rec.continuous = true;
+    rec.interimResults = true;
+    // @ts-expect-error maxAlternatives exists but missing from @types/dom-speech-recognition
+    rec.maxAlternatives = 1;
+    return rec;
+  }, [SpeechRecognition, lang]);
 
   const onStart = useCallback(() => {
     setState({
@@ -124,11 +131,6 @@ export function useSpeechRecognition({
   }, [recognition]);
 
   useEffect(() => {
-    recognition.lang = lang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
     recognition.addEventListener("start", onStart);
     recognition.addEventListener("result", onResult);
     recognition.addEventListener("error", onError);
@@ -140,7 +142,7 @@ export function useSpeechRecognition({
       recognition.removeEventListener("error", onError);
       recognition.removeEventListener("end", onEnd);
     };
-  }, [recognition, lang, onStart, onError, onEnd, onResult]);
+  }, [recognition, onStart, onError, onEnd, onResult]);
 
   return {
     state,
