@@ -106,7 +106,13 @@ export function useSummary<
                 )
             )
           )
-          .then((summary) => summary.join("\n").replaceAll(/\* ?/g, "* "));
+          .then((summary) =>
+            summary
+              .join("\n")
+              // ヒューリスティックな対応: まぁまぁフォーマットが壊れるので目視した問題をヒューリスティックに対応
+              .replaceAll(/\* ?/g, "* ")
+              .replaceAll("* * ", "* ")
+          );
       })
       .then(setSummary)
       .catch((e) => {
